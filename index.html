@@ -242,15 +242,20 @@
   <!-- LOGIN -->
   <div id="authGate" class="card auth-card" style="display:none">
     <h2><span class="n">🔐</span>Inicia sesión</h2>
-    <p class="sub" style="margin:-8px 0 14px">Tus autos y ahorro se guardan en tu cuenta. Te enviaremos un enlace mágico al correo (sin contraseña).</p>
+    <p class="sub" style="margin:-8px 0 14px">Entra con tu correo y contraseña.</p>
     <div class="grid">
       <div class="full">
         <label for="authEmail">Correo electrónico</label>
         <input id="authEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
       </div>
+      <div class="full">
+        <label for="authPass">Contraseña</label>
+        <input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')iniciarSesion()">
+      </div>
     </div>
     <div class="actions">
-      <button class="btn" id="btnLogin" onclick="enviarEnlace()">Enviarme enlace de acceso</button>
+      <button class="btn" id="btnLogin" onclick="iniciarSesion()">Entrar</button>
     </div>
     <p id="authMsg" class="auth-msg"></p>
   </div>
@@ -1200,20 +1205,23 @@ async function cargarDatos(){
   }
 }
 
-// --- Login por enlace mágico ---
-async function enviarEnlace(){
+// --- Login con correo y contraseña ---
+async function iniciarSesion(){
   const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPass").value;
   const msg = document.getElementById("authMsg");
-  if(!email){ msg.className="auth-msg err"; msg.textContent="Escribe tu correo."; return; }
+  if(!email || !password){ msg.className="auth-msg err"; msg.textContent="Escribe tu correo y contraseña."; return; }
   document.getElementById("btnLogin").disabled = true;
-  msg.className="auth-msg"; msg.textContent="Enviando…";
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options:{ emailRedirectTo: window.location.href.split('#')[0] }
-  });
+  msg.className="auth-msg"; msg.textContent="Entrando…";
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   document.getElementById("btnLogin").disabled = false;
-  if(error){ msg.className="auth-msg err"; msg.textContent="Error: "+error.message; }
-  else { msg.className="auth-msg ok"; msg.textContent="✓ Revisa tu correo y abre el enlace para entrar."; }
+  if(error){
+    msg.className="auth-msg err";
+    msg.textContent = /invalid/i.test(error.message)
+      ? "Correo o contraseña incorrectos."
+      : "Error: " + error.message;
+  }
+  // si es correcto, onAuthStateChange muestra la app automáticamente
 }
 async function cerrarSesion(){
   await sb.auth.signOut();
